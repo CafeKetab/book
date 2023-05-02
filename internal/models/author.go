@@ -1,7 +1,6 @@
 package models
 
 type Author struct {
-	Id        uint64 `json:"id"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+	Id       uint64 `json:"id"`
+	FullName string `json:"full_name"`
 }
