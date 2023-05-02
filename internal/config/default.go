@@ -17,7 +17,7 @@ func Default() *Config {
 			Port:     5432,
 			Username: "TEST_USER",
 			Password: "TEST_PASSWORD",
-			Database: "TEST_DB",
+			Database: "BOOK_DB",
 		},
 	}
 }
