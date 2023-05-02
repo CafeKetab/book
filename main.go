@@ -20,6 +20,7 @@ func main() {
 
 	root.AddCommand(
 		cmd.Server{}.Command(trap),
+		cmd.Migrate{}.Command(trap),
 	)
 
 	if err := root.Execute(); err != nil {
