@@ -3,6 +3,7 @@ package rdbms
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -11,100 +12,95 @@ type RDBMS interface {
 
 	MigrateDown(source string) error
 
-	Create(query string, args []interface{}) (uint64, error)
+	Create(query string, args []any) (uint64, error)
 
-	Read(query string, args []interface{}, dest ...interface{}) error
+	Read(query string, args []any, dest []any) error
 
-	Update(query string, args []interface{}) error
+	Update(query string, args []any) error
 
-	Delete(query string, args []interface{}) error
+	Delete(query string, args []any) error
 }
 
 type rdbms struct {
 	db *sql.DB
 }
 
-const (
-	errPrepareStatement = "error when tying to prepare statement"
+var (
+	ErrPrepareStatement = "error when tying to prepare statement"
 
-	errCreate    = "error when tying to create entry"
-	errDuplicate = "entry exists"
+	ErrCreate    = "error when tying to create entry"
+	ErrDuplicate = "entry exists"
 
-	errRead         = "error when tying to read entry"
-	errReadNotFound = "there is no entry with provided arguments"
+	ErrRead         = "error when tying to read entry"
+	ErrReadNotFound = "there is no entry with provided arguments"
 
-	errUpdate = "error when tying to update entry"
+	ErrUpdate = "error when tying to update entry"
 
-	errDelete = "error when tying to delete entry"
+	ErrDelete = "error when tying to delete entry"
 )
 
-func (db *rdbms) Create(query string, args []interface{}) (uint64, error) {
+func (db *rdbms) Create(query string, args []any) (uint64, error) {
 	stmt, err := db.db.Prepare(query)
 	if err != nil {
-		return 0, errors.New(errPrepareStatement)
+		return 0, fmt.Errorf("%s\n%v", ErrPrepareStatement, err)
 	}
 	defer stmt.Close()
 
-	insertResult, err := stmt.Exec(args)
-	if err != nil {
+	var lastInsertId int
+	if err = stmt.QueryRow(args...).Scan(&lastInsertId); err != nil {
 		if strings.Contains(err.Error(), "Duplicate entry") {
-			return 0, errors.New(errDuplicate)
+			return 0, fmt.Errorf("%s\n%v", ErrDuplicate, err)
 		}
 
-		return 0, errors.New(errCreate)
+		return 0, fmt.Errorf("%s\n%v", ErrCreate, err)
 	}
 
-	id, err := insertResult.LastInsertId()
-	if err != nil {
-		return 0, errors.New(errCreate)
-	}
-
-	return uint64(id), nil
+	return uint64(lastInsertId), nil
 }
 
-func (db *rdbms) Read(query string, args []interface{}, dest ...interface{}) error {
+func (db *rdbms) Read(query string, args []any, dest []any) error {
 	stmt, err := db.db.Prepare(query)
 	if err != nil {
-		return errors.New(errPrepareStatement)
+		return fmt.Errorf("%s\n%v", ErrPrepareStatement, err)
 	}
 	defer stmt.Close()
 
-	result := stmt.QueryRow(args)
-	err = result.Scan(dest)
+	result := stmt.QueryRow(args...)
+	err = result.Scan(dest...)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return errors.New(errReadNotFound)
+			return errors.New(ErrReadNotFound)
 		}
 
-		return errors.New(errRead)
+		return fmt.Errorf("%s\n%v", ErrRead, err)
 	}
 
 	return nil
 }
 
-func (db *rdbms) Update(query string, args []interface{}) error {
+func (db *rdbms) Update(query string, args []any) error {
 	stmt, err := db.db.Prepare(query)
 	if err != nil {
-		return errors.New(errPrepareStatement)
+		return fmt.Errorf("%s\n%v", ErrPrepareStatement, err)
 	}
 	defer stmt.Close()
 
 	if _, err = stmt.Exec(args); err != nil {
-		return errors.New(errUpdate)
+		return fmt.Errorf("%s\n%v", ErrUpdate, err)
 	}
 
 	return nil
 }
 
-func (db *rdbms) Delete(query string, args []interface{}) error {
+func (db *rdbms) Delete(query string, args []any) error {
 	stmt, err := db.db.Prepare(query)
 	if err != nil {
-		return errors.New(errPrepareStatement)
+		return fmt.Errorf("%s\n%v", ErrPrepareStatement, err)
 	}
 	defer stmt.Close()
 
-	if _, err = stmt.Exec(args); err != nil {
-		return errors.New(errDelete)
+	if _, err = stmt.Exec(args...); err != nil {
+		return fmt.Errorf("%s\n%v", ErrDelete, err)
 	}
 
 	return nil
