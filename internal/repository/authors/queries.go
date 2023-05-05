@@ -2,18 +2,18 @@ package categories
 
 const QueryInsert = `
 INSERT INTO 
-	categories(name, title, description) 
-	VALUES($1, $2, $3) 
+	authors(full_name) 
+	VALUES($1) 
 RETURNING id;`
 
 const QueryGetDetail = `
-SELECT name, title, description 
-FROM categories 
+SELECT full_name
+FROM authors 
 WHERE id=$1;`
 
 const QueryGetAll = `
-SELECT id, name, title 
-FROM categories 
+SELECT id, full_name
+FROM authors 
 WHERE 
 	id > $1 AND
 	name LIKE '%' || $2 || '%'
