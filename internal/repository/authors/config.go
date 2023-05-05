@@ -1,4 +1,4 @@
-package categories
+package authors
 
 type Config struct {
 	CursorSecret string `koanf:"cursor_secret"`

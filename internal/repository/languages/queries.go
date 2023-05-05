@@ -1,4 +1,4 @@
-package categories
+package languages
 
 const QueryInsert = `
 INSERT INTO 
