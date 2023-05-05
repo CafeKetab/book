@@ -6,3 +6,11 @@ type Category struct {
 	Title       string `json:"title"`
 	Description string `json:"description,omitempty"`
 }
+
+// func (c *Category) ToBeScanned(required bool) []any {
+// 	result := []any{&c.Id, &c.Name, &c.Title}
+// 	if !required {
+// 		result = append(result, &c.Description)
+// 	}
+// 	return result
+// }
