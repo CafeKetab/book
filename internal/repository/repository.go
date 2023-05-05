@@ -14,22 +14,21 @@ type Repository interface {
 }
 
 type repository struct {
-	logger             *zap.Logger
-	rdbms              rdbms.RDBMS
-	migrationDirectory string
+	logger *zap.Logger
+	config *Config
+	rdbms  rdbms.RDBMS
 }
 
-func New(lg *zap.Logger, rdbms rdbms.RDBMS) Repository {
-	r := &repository{logger: lg, rdbms: rdbms}
-	r.migrationDirectory = "file://internal/repository/migrations"
+func New(lg *zap.Logger, cfg *Config, rdbms rdbms.RDBMS) Repository {
+	r := &repository{logger: lg, config: cfg, rdbms: rdbms}
 
 	return r
 }
 
 func (r *repository) MigrateUp(ctx context.Context) error {
-	return r.rdbms.MigrateUp(r.migrationDirectory)
+	return r.rdbms.Migrate(r.config.MigrationDirectory, rdbms.MigrateUp)
 }
 
 func (r *repository) MigrateDown(ctx context.Context) error {
-	return r.rdbms.MigrateDown(r.migrationDirectory)
+	return r.rdbms.Migrate(r.config.MigrationDirectory, rdbms.MigrateUp)
 }

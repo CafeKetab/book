@@ -2,6 +2,7 @@ package rdbms
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -32,13 +33,18 @@ func NewMysql(cfg *Config) (RDBMS, error) {
 	return &mysqlWrapper{&rdbms{db: db}}, nil
 }
 
-func (db *mysqlWrapper) MigrateUp(source string) error {
-	migrator := func(m *migrate.Migrate) error { return m.Up() }
-	return db.migrate(source, migrator)
-}
+func (db *mysqlWrapper) Migrate(source string, direction MigrateDirection) error {
+	var migrator func(m *migrate.Migrate) error
 
-func (db *mysqlWrapper) MigrateDown(source string) error {
-	migrator := func(m *migrate.Migrate) error { return m.Down() }
+	switch direction {
+	case MigrateUp:
+		migrator = func(m *migrate.Migrate) error { return m.Up() }
+	case MigrateDown:
+		migrator = func(m *migrate.Migrate) error { return m.Down() }
+	default:
+		return errors.New("invalid migration direction has been given")
+	}
+
 	return db.migrate(source, migrator)
 }
 
