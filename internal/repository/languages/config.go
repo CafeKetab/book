@@ -1,9 +1,8 @@
 package categories
 
 type Config struct {
-	CursorSecret       string `koanf:"cursor_secret"`
-	MigrationDirectory string `koanf:"migration_directory"`
-	Limit              struct {
+	CursorSecret string `koanf:"cursor_secret"`
+	Limit        struct {
 		Min int `koanf:"min"`
 		Max int `koanf:"max"`
 	} `koanf:"limit"`
@@ -11,8 +10,7 @@ type Config struct {
 
 func (c Config) Default() *Config {
 	return &Config{
-		CursorSecret:       "",
-		MigrationDirectory: "",
+		CursorSecret: "",
 		Limit: struct {
 			Min int "koanf:\"min\""
 			Max int "koanf:\"max\""

@@ -13,14 +13,14 @@ import (
 )
 
 type Repository interface {
-	// insert a category
-	Insert(context.Context, *models.Category) error
+	// insert a language
+	Insert(context.Context, *models.Language) error
 
-	// get category detail
-	GetById(ctx context.Context, id uint64) (*models.Category, error)
+	// get language detail
+	GetById(ctx context.Context, id uint64) (*models.Language, error)
 
 	// search + pagination (no detail)
-	GetAll(ctx context.Context, encryptedCursor, search string, limit int) ([]models.Category, string, error)
+	GetAll(ctx context.Context, encryptedCursor, search string, limit int) ([]models.Language, string, error)
 }
 
 type repository struct {
@@ -29,34 +29,34 @@ type repository struct {
 	rdbms  rdbms.RDBMS
 }
 
-func (r *repository) Insert(ctx context.Context, category *models.Category) error {
-	if len(category.Name) == 0 || len(category.Title) == 0 {
-		return errors.New("Insufficient information for category")
+func (r *repository) Insert(ctx context.Context, category *models.Language) error {
+	if len(category.Name) == 0 {
+		return errors.New("Insufficient information for language")
 	}
 
-	in := []interface{}{category.Name, category.Title, category.Description}
+	in := []interface{}{category.Name}
 	out := []any{&category.Id}
 	if err := r.rdbms.QueryRow(QueryInsert, in, out); err != nil {
-		r.logger.Error("Error inserting category", zap.Error(err))
+		r.logger.Error("Error inserting language", zap.Error(err))
 		return err
 	}
 
 	return nil
 }
 
-func (r *repository) GetById(ctx context.Context, id uint64) (*models.Category, error) {
-	category := models.Category{Id: id}
+func (r *repository) GetById(ctx context.Context, id uint64) (*models.Language, error) {
+	language := models.Language{Id: id}
 
-	out := []any{&category.Name, &category.Title, &category.Description}
+	out := []any{&language.Name}
 	if err := r.rdbms.QueryRow(QueryGetDetail, []any{id}, out); err != nil {
-		r.logger.Error("Error find category by id", zap.Error(err))
+		r.logger.Error("Error get language by id", zap.Error(err))
 		return nil, err
 	}
 
-	return &category, nil
+	return &language, nil
 }
 
-func (r *repository) GetAll(ctx context.Context, encryptedCursor, search string, limit int) ([]models.Category, string, error) {
+func (r *repository) GetAll(ctx context.Context, encryptedCursor, search string, limit int) ([]models.Language, string, error) {
 	var id uint64 = 0
 
 	if limit < r.config.Limit.Min {
@@ -83,34 +83,34 @@ func (r *repository) GetAll(ctx context.Context, encryptedCursor, search string,
 		}
 	}
 
-	categories := make([]models.Category, limit)
+	languages := make([]models.Language, limit)
 	out := make([][]any, limit)
 
 	for index := 0; index < limit; index++ {
-		out[index] = []any{&categories[index].Id, &categories[index].Name, &categories[index].Title}
+		out[index] = []any{&languages[index].Id, &languages[index].Name}
 	}
 
 	if err := r.rdbms.Query(QueryGetAll, []any{id, search, limit}, out); err != nil {
-		r.logger.Error("Error query categories", zap.Error(err))
+		r.logger.Error("Error query languages", zap.Error(err))
 		return nil, "", err
 	}
 
-	var lastCategory models.Category
+	var lastLanguage models.Language
 
 	for index := limit - 1; index >= 0; index-- {
-		if categories[index].Id != 0 {
-			lastCategory = categories[index]
+		if languages[index].Id != 0 {
+			lastLanguage = languages[index]
 			break
 		} else {
-			categories = categories[:index]
+			languages = languages[:index]
 		}
 	}
 
-	if lastCategory.Id == 0 {
-		return categories, "", nil
+	if lastLanguage.Id == 0 {
+		return languages, "", nil
 	}
 
-	cursor := strconv.FormatUint(lastCategory.Id, 10)
+	cursor := strconv.FormatUint(lastLanguage.Id, 10)
 
 	// encrypt cursor
 	encryptedCursor, err := crypto.Encrypt(cursor, r.config.CursorSecret)
@@ -118,5 +118,5 @@ func (r *repository) GetAll(ctx context.Context, encryptedCursor, search string,
 		panic(err)
 	}
 
-	return categories, encryptedCursor, nil
+	return languages, encryptedCursor, nil
 }
