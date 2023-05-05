@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS publishers(
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(30),
+	title VARCHAR(80),
 	description VARCHAR(255)
 );
 

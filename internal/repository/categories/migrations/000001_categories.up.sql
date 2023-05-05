@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS categories(
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(30),
-	title VARCHAR(30),
+	title VARCHAR(80),
 	description VARCHAR(255)
 );
 

@@ -1,19 +1,19 @@
-package categories
+package publishers
 
 const QueryInsert = `
 INSERT INTO 
-	categories(name, title, description) 
+	publishers(name, title, description) 
 	VALUES($1, $2, $3) 
 RETURNING id;`
 
 const QueryGetDetail = `
 SELECT name, title, description 
-FROM categories 
+FROM publishers 
 WHERE id=$1;`
 
 const QueryGetAll = `
 SELECT id, name, title 
-FROM categories 
+FROM publishers 
 WHERE 
 	id > $1 AND
 	name LIKE '%' || $2 || '%'

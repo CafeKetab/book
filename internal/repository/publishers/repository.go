@@ -1,4 +1,4 @@
-package categories
+package publishers
 
 import (
 	"context"
@@ -13,14 +13,14 @@ import (
 )
 
 type Repository interface {
-	// insert a category
-	Insert(context.Context, *models.Category) error
+	// insert a publisher
+	Insert(context.Context, *models.Publisher) error
 
-	// get category detail
-	GetById(ctx context.Context, id uint64) (*models.Category, error)
+	// get publisher detail
+	GetById(ctx context.Context, id uint64) (*models.Publisher, error)
 
 	// search + pagination (no detail)
-	GetAll(ctx context.Context, encryptedCursor, search string, limit int) ([]models.Category, string, error)
+	GetAll(ctx context.Context, encryptedCursor, search string, limit int) ([]models.Publisher, string, error)
 }
 
 type repository struct {
@@ -29,34 +29,34 @@ type repository struct {
 	rdbms  rdbms.RDBMS
 }
 
-func (r *repository) Insert(ctx context.Context, category *models.Category) error {
-	if len(category.Name) == 0 || len(category.Title) == 0 {
-		return errors.New("Insufficient information for category")
+func (r *repository) Insert(ctx context.Context, publisher *models.Publisher) error {
+	if len(publisher.Name) == 0 || len(publisher.Title) == 0 {
+		return errors.New("Insufficient information for publisher")
 	}
 
-	in := []interface{}{category.Name, category.Title, category.Description}
-	out := []any{&category.Id}
+	in := []interface{}{publisher.Name, publisher.Title, publisher.Description}
+	out := []any{&publisher.Id}
 	if err := r.rdbms.QueryRow(QueryInsert, in, out); err != nil {
-		r.logger.Error("Error inserting category", zap.Error(err))
+		r.logger.Error("Error inserting publisher", zap.Error(err))
 		return err
 	}
 
 	return nil
 }
 
-func (r *repository) GetById(ctx context.Context, id uint64) (*models.Category, error) {
-	category := models.Category{Id: id}
+func (r *repository) GetById(ctx context.Context, id uint64) (*models.Publisher, error) {
+	publisher := models.Publisher{Id: id}
 
-	out := []any{&category.Name, &category.Title, &category.Description}
+	out := []any{&publisher.Name, &publisher.Title, &publisher.Description}
 	if err := r.rdbms.QueryRow(QueryGetDetail, []any{id}, out); err != nil {
-		r.logger.Error("Error find category by id", zap.Error(err))
+		r.logger.Error("Error get publisher by id", zap.Error(err))
 		return nil, err
 	}
 
-	return &category, nil
+	return &publisher, nil
 }
 
-func (r *repository) GetAll(ctx context.Context, encryptedCursor, search string, limit int) ([]models.Category, string, error) {
+func (r *repository) GetAll(ctx context.Context, encryptedCursor, search string, limit int) ([]models.Publisher, string, error) {
 	var id uint64 = 0
 
 	if limit < r.config.Limit.Min {
@@ -83,34 +83,34 @@ func (r *repository) GetAll(ctx context.Context, encryptedCursor, search string,
 		}
 	}
 
-	categories := make([]models.Category, limit)
+	publishers := make([]models.Publisher, limit)
 	out := make([][]any, limit)
 
 	for index := 0; index < limit; index++ {
-		out[index] = []any{&categories[index].Id, &categories[index].Name, &categories[index].Title}
+		out[index] = []any{&publishers[index].Id, &publishers[index].Name, &publishers[index].Title}
 	}
 
 	if err := r.rdbms.Query(QueryGetAll, []any{id, search, limit}, out); err != nil {
-		r.logger.Error("Error query categories", zap.Error(err))
+		r.logger.Error("Error query publishers", zap.Error(err))
 		return nil, "", err
 	}
 
-	var lastCategory models.Category
+	var lastPublisher models.Publisher
 
 	for index := limit - 1; index >= 0; index-- {
-		if categories[index].Id != 0 {
-			lastCategory = categories[index]
+		if publishers[index].Id != 0 {
+			lastPublisher = publishers[index]
 			break
 		} else {
-			categories = categories[:index]
+			publishers = publishers[:index]
 		}
 	}
 
-	if lastCategory.Id == 0 {
-		return categories, "", nil
+	if lastPublisher.Id == 0 {
+		return publishers, "", nil
 	}
 
-	cursor := strconv.FormatUint(lastCategory.Id, 10)
+	cursor := strconv.FormatUint(lastPublisher.Id, 10)
 
 	// encrypt cursor
 	encryptedCursor, err := crypto.Encrypt(cursor, r.config.CursorSecret)
@@ -118,5 +118,5 @@ func (r *repository) GetAll(ctx context.Context, encryptedCursor, search string,
 		panic(err)
 	}
 
-	return categories, encryptedCursor, nil
+	return publishers, encryptedCursor, nil
 }
