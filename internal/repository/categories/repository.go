@@ -1,4 +1,4 @@
-package repository
+package categories
 
 import (
 	"context"
@@ -8,42 +8,60 @@ import (
 
 	"github.com/CafeKetab/book/internal/models"
 	"github.com/CafeKetab/book/pkg/crypto"
+	"github.com/CafeKetab/book/pkg/rdbms"
 	"go.uber.org/zap"
 )
 
-const QueryInsertCategory = `
-	INSERT INTO 
-		categories(name, title, description) 
-		VALUES($1, $2, $3) 
-	RETURNING id;`
+type Repository interface {
+	MigrateUp(context.Context) error
+	MigrateDown(context.Context) error
 
-// insert a category
-func (r *repository) InsertCategory(ctx context.Context, category *models.Category) error {
+	// insert a category
+	Insert(context.Context, *models.Category) error
+
+	// get category detail
+	GetById(ctx context.Context, id uint64) (*models.Category, error)
+
+	// search + pagination (no detail)
+	GetAll(ctx context.Context, encryptedCursor, search string, limit int) ([]models.Category, string, error)
+}
+
+type repository struct {
+	logger *zap.Logger
+	config *Config
+	rdbms  rdbms.RDBMS
+}
+
+const dir = "file://internal/repository/categories/migrations"
+
+func (r *repository) MigrateUp(ctx context.Context) error {
+	return r.rdbms.Migrate(dir, rdbms.MigrateUp)
+}
+
+func (r *repository) MigrateDown(ctx context.Context) error {
+	return r.rdbms.Migrate(dir, rdbms.MigrateDown)
+}
+
+func (r *repository) Insert(ctx context.Context, category *models.Category) error {
 	if len(category.Name) == 0 || len(category.Title) == 0 {
 		return errors.New("Insufficient information for category")
 	}
 
 	in := []interface{}{category.Name, category.Title, category.Description}
-	if err := r.rdbms.QueryRow(QueryInsertCategory, in, []any{&category.Id}); err != nil {
-		r.logger.Error("Error creating category", zap.Error(err))
+	out := []any{&category.Id}
+	if err := r.rdbms.QueryRow(QueryInsert, in, out); err != nil {
+		r.logger.Error("Error inserting category", zap.Error(err))
 		return err
 	}
 
 	return nil
 }
 
-const QueryGetCategoryDetail = `
-	SELECT name, title, description 
-	FROM categories 
-	WHERE id=$1;`
-
-// get category detail
-func (r *repository) GetCategoryById(ctx context.Context, id uint64) (*models.Category, error) {
+func (r *repository) GetById(ctx context.Context, id uint64) (*models.Category, error) {
 	category := models.Category{Id: id}
 
-	in := []any{id}
 	out := []any{&category.Name, &category.Title, &category.Description}
-	if err := r.rdbms.QueryRow(QueryGetCategoryDetail, in, out); err != nil {
+	if err := r.rdbms.QueryRow(QueryGetDetail, []any{id}, out); err != nil {
 		r.logger.Error("Error find category by id", zap.Error(err))
 		return nil, err
 	}
@@ -51,17 +69,7 @@ func (r *repository) GetCategoryById(ctx context.Context, id uint64) (*models.Ca
 	return &category, nil
 }
 
-const QueryGetCategories = `
-	SELECT id, name, title 
-	FROM categories 
-	WHERE 
-		id > $1 AND
-		name LIKE '%' || $2 || '%'
-	ORDER BY id
-	FETCH NEXT $3 ROWS ONLY;`
-
-// search + pagination (no detail)
-func (r *repository) GetCategories(ctx context.Context, encryptedCursor, search string, limit int) ([]models.Category, string, error) {
+func (r *repository) GetAll(ctx context.Context, encryptedCursor, search string, limit int) ([]models.Category, string, error) {
 	var id uint64 = 0
 
 	if limit < r.config.Limit.Min {
@@ -95,7 +103,7 @@ func (r *repository) GetCategories(ctx context.Context, encryptedCursor, search 
 		out[index] = []any{&categories[index].Id, &categories[index].Name, &categories[index].Title}
 	}
 
-	if err := r.rdbms.Query(QueryGetCategories, []any{id, search, limit}, out); err != nil {
+	if err := r.rdbms.Query(QueryGetAll, []any{id, search, limit}, out); err != nil {
 		r.logger.Error("Error query categories", zap.Error(err))
 		return nil, "", err
 	}

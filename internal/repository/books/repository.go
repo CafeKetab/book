@@ -1,4 +1,4 @@
-package repository
+package books
 
 // search + pagination (no detail)
 
