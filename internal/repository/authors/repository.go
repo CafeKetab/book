@@ -100,21 +100,11 @@ func (r *repository) GetAll(ctx context.Context, encryptedCursor, search string,
 		return nil, "", err
 	}
 
-	var lastAuthor models.Author
-
-	for index := limit - 1; index >= 0; index-- {
-		if authors[index].Id != 0 {
-			lastAuthor = authors[index]
-			break
-		} else {
-			authors = authors[:index]
-		}
-	}
-
-	if lastAuthor.Id == 0 {
+	if len(authors) == 0 {
 		return authors, "", nil
 	}
 
+	lastAuthor := authors[len(authors)]
 	cursor := strconv.FormatUint(lastAuthor.Id, 10)
 
 	// encrypt cursor

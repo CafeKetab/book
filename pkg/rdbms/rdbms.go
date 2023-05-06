@@ -90,7 +90,8 @@ func (db *rdbms) Query(query string, in []any, out [][]any) error {
 	}
 	defer rows.Close()
 
-	for index := 0; rows.Next(); index++ {
+	var index = 0
+	for ; rows.Next(); index++ {
 		if err = rows.Scan(out[index]...); err != nil {
 			if err == sql.ErrNoRows {
 				return errors.New(ErrNotFound)
@@ -98,6 +99,7 @@ func (db *rdbms) Query(query string, in []any, out [][]any) error {
 			return fmt.Errorf("%s\n%v", ErrorQueryRow, err)
 		}
 	}
+	out = out[:index+1]
 
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("%s\n%v", ErrorQueryRows, err)
